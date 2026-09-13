@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Select from "react-select";
 import { FiCode, FiStar, FiZap } from "react-icons/fi";
+import { generateComponent } from "../config/gemini";
 
 const Home = () => {
   const [framework, setFramework] = useState({
@@ -9,6 +10,8 @@ const Home = () => {
   });
 
   const [prompt, setPrompt] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const frameworkOptions = [
     {
@@ -81,14 +84,31 @@ const Home = () => {
     }),
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) {
       alert("Please describe the component you want to generate.");
       return;
     }
 
-    console.log("Framework:", framework.label);
-    console.log("Prompt:", prompt);
+    try {
+      setLoading(true);
+      setGeneratedCode("");
+
+      const code = await generateComponent(
+        prompt,
+        framework.label
+      );
+
+      setGeneratedCode(code);
+    } catch (error) {
+      console.error("Gemini Error:", error);
+
+      alert(
+        "Something went wrong while generating the component. Please check your API key and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,6 +155,7 @@ const Home = () => {
                 <h3 className="font-semibold text-white">
                   Describe your component
                 </h3>
+
                 <p className="text-xs text-slate-500">
                   Tell AI what you want to build
                 </p>
@@ -183,28 +204,42 @@ const Home = () => {
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-5 py-3.5 font-semibold text-white shadow-lg shadow-purple-900/20 transition duration-300 hover:-translate-y-0.5 hover:shadow-purple-500/20"
+              disabled={loading}
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 via-violet-600 to-blue-600 px-5 py-3.5 font-semibold text-white shadow-lg shadow-purple-900/20 transition duration-300 hover:-translate-y-0.5 hover:shadow-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FiZap
                 size={18}
-                className="transition-transform duration-300 group-hover:rotate-12"
+                className={
+                  loading
+                    ? "animate-spin"
+                    : "transition-transform duration-300 group-hover:rotate-12"
+                }
               />
 
-              <span>Generate Component</span>
+              <span>
+                {loading
+                  ? "Generating..."
+                  : "Generate Component"}
+              </span>
             </button>
 
             {/* Tips */}
             <div className="mt-5 rounded-xl border border-slate-800 bg-[#070b14] p-4">
               <div className="mb-2 flex items-center gap-2">
-                <FiCode className="text-purple-400" size={15} />
+                <FiCode
+                  className="text-purple-400"
+                  size={15}
+                />
+
                 <span className="text-xs font-semibold text-slate-300">
                   Pro tip
                 </span>
               </div>
 
               <p className="text-xs leading-5 text-slate-500">
-                Be specific about colors, layout, buttons, animations,
-                responsiveness and other UI details for better results.
+                Be specific about colors, layout, buttons,
+                animations, responsiveness and other UI details
+                for better results.
               </p>
             </div>
           </div>
@@ -222,6 +257,7 @@ const Home = () => {
                   <h3 className="text-sm font-semibold text-white">
                     Your Creation
                   </h3>
+
                   <p className="text-xs text-slate-500">
                     Generated component
                   </p>
@@ -233,7 +269,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Fake Editor */}
+            {/* Editor */}
             <div className="min-h-[500px] bg-[#070b14] p-4 md:p-5">
               <div className="h-full min-h-[465px] overflow-hidden rounded-xl border border-slate-800 bg-[#050810]">
                 {/* Editor Top Bar */}
@@ -249,27 +285,43 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Empty State */}
-                <div className="flex min-h-[415px] items-center justify-center px-6">
-                  <div className="max-w-sm text-center">
-                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
-                      <FiCode size={28} />
-                    </div>
-
-                    <h4 className="text-lg font-semibold text-slate-200">
-                      Your code will appear here
-                    </h4>
-
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Describe your UI component on the left and click
-                      <span className="text-purple-400">
-                        {" "}
-                        Generate Component
-                      </span>
-                      .
-                    </p>
+                {/* Generated Code */}
+                {loading ? (
+                  <div className="space-y-4 p-6">
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-slate-800" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-slate-800" />
+                    <div className="h-4 w-5/6 animate-pulse rounded bg-slate-800" />
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-slate-800" />
+                    <div className="h-4 w-4/5 animate-pulse rounded bg-slate-800" />
                   </div>
-                </div>
+                ) : generatedCode ? (
+                  <pre className="max-h-[415px] overflow-auto p-5 text-sm leading-6 text-slate-300">
+                    <code>{generatedCode}</code>
+                  </pre>
+                ) : (
+                  /* Empty State */
+                  <div className="flex min-h-[415px] items-center justify-center px-6">
+                    <div className="max-w-sm text-center">
+                      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
+                        <FiCode size={28} />
+                      </div>
+
+                      <h4 className="text-lg font-semibold text-slate-200">
+                        Your code will appear here
+                      </h4>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        Describe your UI component on the left and
+                        click
+                        <span className="text-purple-400">
+                          {" "}
+                          Generate Component
+                        </span>
+                        .
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -281,8 +333,10 @@ const Home = () => {
             <div className="mb-2 text-sm font-semibold text-white">
               ⚡ Fast generation
             </div>
+
             <p className="text-xs leading-5 text-slate-500">
-              Generate UI components from simple natural-language prompts.
+              Generate UI components from simple natural-language
+              prompts.
             </p>
           </div>
 
@@ -290,8 +344,10 @@ const Home = () => {
             <div className="mb-2 text-sm font-semibold text-white">
               🎨 Modern UI
             </div>
+
             <p className="text-xs leading-5 text-slate-500">
-              Create clean and responsive designs for your projects.
+              Create clean and responsive designs for your
+              projects.
             </p>
           </div>
 
@@ -299,6 +355,7 @@ const Home = () => {
             <div className="mb-2 text-sm font-semibold text-white">
               💻 Clean code
             </div>
+
             <p className="text-xs leading-5 text-slate-500">
               Get ready-to-use HTML and CSS code generated by AI.
             </p>
